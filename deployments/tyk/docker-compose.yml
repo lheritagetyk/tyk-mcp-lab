@@ -112,44 +112,10 @@ services:
     image: jmalloc/echo-server:0.3.1
     networks:
       - tyk
-  www-ngrok:
-    image: ngrok/ngrok:3.12.0-alpine
-    networks:
-      - tyk
-    command:
-      - "start"
-      - "--all"
-      - "--config"
-      - "/etc/ngrok.yml"
-    volumes:
-      - ./deployments/tyk/volumes/ngrok/ngrok.yml:/etc/ngrok.yml
-    ports:
-      - 4040:4040
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN-}
   grpcbin:
     image: moul/grpcbin:renovate_all
     networks:
       - tyk
-  kafka:
-    image: apache/kafka:3.8.0
-    networks:
-      - tyk
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_NUM_PARTITIONS: 3
-    volumes:
-      - tyk-kafka-data:/opt/kafka/data
   countries-rest-api:
     image: davidgarvey/countries-rest-api:latest
     networks:
@@ -162,7 +128,6 @@ services:
 volumes:
   tyk-redis-data:
   tyk-mongo-data:
-  tyk-kafka-data:
   tyk-gateway-certs:
   tyk-dashboard-certs:
 

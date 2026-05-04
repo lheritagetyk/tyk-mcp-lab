@@ -202,21 +202,6 @@ fi
 log_ok
 bootstrap_progress
 
-# Kafka
-
-log_message "Creating Kafka topics"
-kafka_topics=("tyk-streams-example" "jobs" "completed")
-for kafka_topic_name in "${kafka_topics[@]}"; do
-  docker exec tyk-demo-kafka-1 sh -c "/opt/kafka/bin/kafka-topics.sh --create --topic $kafka_topic_name --bootstrap-server localhost:9092" >/dev/null 2>>logs/bootstrap.log
-  if [ "$?" -ne "0" ]; then
-    echo "ERROR: Could not create kafka topic: $kafka_topic_name"
-    exit 1
-  fi
-  log_message "  Created topic: $kafka_topic_name"
-done
-log_ok
-bootstrap_progress
-
 # Go plugins
 
 if [ -f .bootstrap/skip_plugin_build ]; then
@@ -645,50 +630,6 @@ bootstrap_progress
 log_ok
 fi
 
-# Ngrok
-
-ngrok_available=false
-if ! grep -q "NGROK_AUTHTOKEN=" .env; then
-  log_message "Ngrok auth token is not set, so Ngrok will not be available"
-  log_message "To enable Ngrok, set the NGROK_AUTHTOKEN value in the Tyk Demo .env file"
-  ngrok_gateway_tunnel_url="not configured"
-  ngrok_mdcb_tunnel_url="not configured"
-else
-  log_message "Getting Ngrok public URL for Tyk Gateway"
-  ngrok_dashboard_url="http://localhost:4040"
-  ngrok_api_gateway_endpoint="$ngrok_dashboard_url/api/tunnels/tyk-gateway"
-  ngrok_api_mdcb_endpoint="$ngrok_dashboard_url/api/tunnels/tyk-mdcb"
-  log_message "  Getting gateway tunnel URL from $ngrok_api_gateway_endpoint"
-  ngrok_gateway_tunnel_url=$(curl -s --show-error ${ngrok_api_gateway_endpoint} 2>> logs/bootstrap.log | jq ".public_url" --raw-output)
-  log_message "  Getting MDCB tunnel URL from $ngrok_api_mdcb_endpoint"
-  ngrok_mdcb_tunnel_url=$(curl -s --show-error ${ngrok_api_mdcb_endpoint} 2>> logs/bootstrap.log | jq ".public_url" --raw-output)
-  
-  # we want to handle ngrok failure gracefully, such that it doesn't prevent the bootstrap from completing
-  if [ "$?" != 0 ]; then
-    log_message "  ERROR: Unable to get Ngrok configuration from $ngrok_api_gateway_endpoint"
-    ngrok_gateway_tunnel_url="not configured"
-  else
-    if [ "$ngrok_gateway_tunnel_url" = "" ]; then
-      log_message "  ERROR: The Ngrok gateway URL is empty"
-      ngrok_gateway_tunnel_url="not configured"
-    else
-      log_message "  Ngrok gateway URL: $ngrok_gateway_tunnel_url"
-      ngrok_available=true
-      log_ok  
-    fi
-    if [ "$ngrok_mdcb_tunnel_url" = "" ]; then
-      log_message "  ERROR: The Ngrok MDCB URL is empty"
-      ngrok_mdcb_tunnel_url="not configured"
-    else
-      log_message "  Ngrok MDCB URL: $ngrok_mdcb_tunnel_url"
-      ngrok_available=true
-      ngrok_mdcb_url=$(echo "$ngrok_mdcb_tunnel_url" | cut -d'/' -f3)
-      set_context_data "1" "ngrok" "mdcb" "url" "$ngrok_mdcb_url"
-      log_ok  
-    fi
-  fi
-fi
-
 log_end_deployment
 
 NOCOLOUR='\033[0m'
@@ -736,14 +677,5 @@ echo -e "\033[2K
   ▽ Gateway ($(get_service_image_tag "tyk-gateway"))
                     URL : $GATEWAY_DISPLAY_URL
                URL(TCP) : $GATEWAY_DISPLAY_URL_TCP
-           External URL : $ngrok_gateway_tunnel_url
      Gateway API Header : x-tyk-authorization
         Gateway API Key : $gateway_api_credentials"
-if [ "$ngrok_available" = "true" ]; then
-  echo -e "
-  ▽ Ngrok
-          Dashboard URL : $ngrok_dashboard_url
-    ▾ Tunnels
-            Gateway URL : $ngrok_gateway_tunnel_url
-               MDCB URL : $ngrok_mdcb_tunnel_url"
-fi

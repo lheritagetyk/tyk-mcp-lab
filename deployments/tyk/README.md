@@ -182,39 +182,3 @@ data: 2021-10-15T03:32:36Z
 id: 4
 ```
 
-### External Access via ngrok
-
-ngrok provides external access to your Tyk Gateway, enabling:
-- Public internet accessibility
-- Geolocation tracking in the "Activity by location" dashboard
-- Request recording through the ngrok dashboard
-
-#### Configuration
-
-**Important**: ngrok requires an auth token. To configure:
-1. Create an ngrok account on their website
-2. Obtain an auth token (not an API key)
-3. Add it to the Tyk Demo `.env` file: `NGROK_AUTHTOKEN=MY-AUTH-TOKEN-123`
-
-#### Access and Monitoring
-
-- [ngrok dashboard](http://localhost:4040)
-- The ngrok tunnel URL is displayed in the bootstrap script output
-
-APIs are accessible through both the Gateway URL and tunnel URL:
-- Gateway URL: `http://tyk-gateway.localhost:8080/basic-open-api/get`
-- External Tunnel URL: `http://<dynamic-id>.ngrok.io/basic-open-api/get`
-
-#### Managing the Tunnel
-
-To retrieve the current tunnel URL:
-```bash
-curl localhost:4040/api/tunnels --silent | jq ".tunnels[0].public_url" --raw-output
-```
-
-To renew the ngrok session (anonymous sessions expire after 2 hours):
-```bash
-./docker-compose-command.sh restart www-ngrok
-```
-
-You can also configure the external URL as a custom domain in the API definition.
