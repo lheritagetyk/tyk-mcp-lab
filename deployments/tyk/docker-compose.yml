@@ -1,0 +1,191 @@
+---
+services:
+  tyk-dashboard:
+    image: tykio/${DASHBOARD_IMAGE_REPO:-tyk-dashboard}:${DASHBOARD_VERSION:-v5.13.0-rc1}
+    ports:
+      - 3000:3000
+    networks:
+      - tyk
+    volumes:
+      - ./deployments/tyk/volumes/tyk-dashboard/tyk_analytics.conf:/opt/tyk-dashboard/tyk_analytics.conf
+      - tyk-dashboard-certs:/opt/tyk-dashboard/certs
+      - ./deployments/tyk/volumes/tyk-dashboard/catalogue.html:/opt/tyk-dashboard/portal/templates/catalogue.html
+      - ./deployments/tyk/volumes/tyk-dashboard/navigation.html:/opt/tyk-dashboard/portal/templates/navigation.html
+    environment:
+      - TYK_DB_LICENSEKEY=${DASHBOARD_LICENCE:?Dashboard licence missing from Docker environment file .env. Review The Getting Started steps in README.md.}
+      - TYK_LOGLEVEL=${DASHBOARD_LOGLEVEL:-info}
+      - TYK_INSTRUMENTATION=${INSTRUMENTATION_ENABLED:-0}
+      - TYK_DB_STREAMING_ENABLED=true
+    env_file:
+      - .env
+    depends_on:
+      - tyk-redis
+      - tyk-mongo
+  tyk-gateway:
+    image: tykio/${GATEWAY_IMAGE_REPO:-tyk-gateway}:${GATEWAY_VERSION:-v5.13.0-rc1}
+    ports:
+      - 8080:8080
+      - 8086:8086
+      - 9002:9002
+      - 9003:9003
+      - 9004:9004
+    networks:
+      tyk:
+        aliases:
+          - tyk-custom-domain.com
+          - tyk-dynamic-looping.com
+    environment:
+      - TYK_LOGLEVEL=${GATEWAY_LOGLEVEL:-info}
+      - TYK_INSTRUMENTATION=${INSTRUMENTATION_ENABLED:-0}
+      - TYK_GW_TRACER_ENABLED=${TRACING_ENABLED:-false}
+      - TYK_GW_HTTPSERVEROPTIONS_ENABLEHTTP2=true
+      - TYK_GW_PROXYENABLEHTTP2=true
+      - TYK_GW_HTTPSERVEROPTIONS_FLUSHINTERVAL=1
+      - TYK_GW_ANALYTICSCONFIG_ENABLEGEOIP=true
+      - TYK_GW_ANALYTICSCONFIG_GEOIPDBLOCATION=/opt/tyk-gateway/databases/GeoLite2-Country.mmdb
+      - TYK_GW_OPENTELEMETRY_ENABLED=${OPENTELEMETRY_ENABLED:-false}
+      - TYK_GW_OPENTELEMETRY_ENDPOINT=${OPENTELEMETRY_ENDPOINT:-false}
+      - TYK_GW_PROXYSSLINSECURESKIPVERIFY=true
+      - TYK_GW_STREAMING_ENABLED=true
+    env_file:
+      - .env
+    volumes:
+      - ./deployments/tyk/volumes/tyk-gateway/tyk.conf:/opt/tyk-gateway/tyk.conf
+      - tyk-gateway-certs:/opt/tyk-gateway/certs
+      - ./deployments/tyk/volumes/tyk-gateway/middleware:/opt/tyk-gateway/middleware
+      - ./deployments/tyk/volumes/tyk-gateway/plugins:/opt/tyk-gateway/plugins
+      - ./deployments/tyk/volumes/tyk-gateway/templates/error_401.json:/opt/tyk-gateway/templates/error_401.json
+      - ./deployments/tyk/volumes/databases/GeoLite2-Country.mmdb:/opt/tyk-gateway/databases/GeoLite2-Country.mmdb
+    depends_on:
+      - tyk-redis
+      - tyk-dashboard
+  tyk-gateway-2:
+    image: tykio/${GATEWAY_IMAGE_REPO:-tyk-gateway}:${GATEWAY2_VERSION:-v5.12.0}
+    ports:
+      - 8081:8080
+      - 9005:9005
+    networks:
+      - tyk
+    environment:
+      - TYK_LOGLEVEL=${GATEWAY2_LOGLEVEL:-info}
+      - TYK_INSTRUMENTATION=${INSTRUMENTATION_ENABLED:-0}
+      - TYK_DB_STREAMING_ENABLED=true
+    env_file:
+      - .env
+    volumes:
+      - ./deployments/tyk/volumes/tyk-gateway/tyk-2.conf:/opt/tyk-gateway/tyk.conf
+      - tyk-gateway-certs:/opt/tyk-gateway/certs
+      - ./deployments/tyk/volumes/tyk-gateway/middleware:/opt/tyk-gateway/middleware
+    depends_on:
+      - tyk-redis
+      - tyk-gateway
+      - tyk-dashboard
+  tyk-pump:
+    image: tykio/tyk-pump-docker-pub:${PUMP_VERSION:-v1.15.0-rc1}
+    ports:
+      - 8083:8083
+    networks:
+      - tyk
+    volumes:
+      - ./deployments/tyk/volumes/tyk-pump/pump.conf:/opt/tyk-pump/pump.conf
+    environment:
+      - TYK_INSTRUMENTATION=${INSTRUMENTATION_ENABLED:-0}
+      - TYK_LOGLEVEL=${PUMP_LOGLEVEL:-info}
+    env_file:
+      - .env
+    depends_on:
+      - tyk-redis
+      - tyk-mongo
+  tyk-redis:
+    image: redis:7.2.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - tyk-redis-data:/data
+    networks:
+      - tyk
+  tyk-mongo:
+    image: mongo:7.0.9
+    ports:
+      - "27017:27017"
+    volumes:
+      - tyk-mongo-data:/data/db
+    networks:
+      - tyk
+  httpbin:
+    image: kennethreitz/httpbin:latest
+    networks:
+      tyk:
+        aliases:
+          - httpbin2
+  swagger-petstore:
+    image: swaggerapi/petstore:1.0.5
+    networks:
+      - tyk
+    environment:
+      - SWAGGER_HOST=http://swagger-petstore:8080
+      - SWAGGER_URL=http://localhost:8080/swagger-petstore
+  json-placeholder:
+    image: svenwal/jsonplaceholder:1.1
+    networks:
+      - tyk
+  echo-server:
+    image: jmalloc/echo-server:0.3.1
+    networks:
+      - tyk
+  www-ngrok:
+    image: ngrok/ngrok:3.12.0-alpine
+    networks:
+      - tyk
+    command:
+      - "start"
+      - "--all"
+      - "--config"
+      - "/etc/ngrok.yml"
+    volumes:
+      - ./deployments/tyk/volumes/ngrok/ngrok.yml:/etc/ngrok.yml
+    ports:
+      - 4040:4040
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN-}
+  grpcbin:
+    image: moul/grpcbin:renovate_all
+    networks:
+      - tyk
+  kafka:
+    image: apache/kafka:3.8.0
+    networks:
+      - tyk
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+    volumes:
+      - tyk-kafka-data:/opt/kafka/data
+  countries-rest-api:
+    image: davidgarvey/countries-rest-api:latest
+    networks:
+      - tyk
+  countries-graphql-api:
+    image: mangomm/trevorblades-countries:latest
+    networks:
+      - tyk
+
+volumes:
+  tyk-redis-data:
+  tyk-mongo-data:
+  tyk-kafka-data:
+  tyk-gateway-certs:
+  tyk-dashboard-certs:
+
+networks:
+  tyk:
