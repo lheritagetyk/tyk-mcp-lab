@@ -91,39 +91,6 @@ services:
       - tyk-mongo-data:/data/db
     networks:
       - tyk
-  httpbin:
-    image: kennethreitz/httpbin:latest
-    networks:
-      tyk:
-        aliases:
-          - httpbin2
-  swagger-petstore:
-    image: swaggerapi/petstore:1.0.5
-    networks:
-      - tyk
-    environment:
-      - SWAGGER_HOST=http://swagger-petstore:8080
-      - SWAGGER_URL=http://localhost:8080/swagger-petstore
-  json-placeholder:
-    image: svenwal/jsonplaceholder:1.1
-    networks:
-      - tyk
-  echo-server:
-    image: jmalloc/echo-server:0.3.1
-    networks:
-      - tyk
-  grpcbin:
-    image: moul/grpcbin:renovate_all
-    networks:
-      - tyk
-  countries-rest-api:
-    image: davidgarvey/countries-rest-api:latest
-    networks:
-      - tyk
-  countries-graphql-api:
-    image: mangomm/trevorblades-countries:latest
-    networks:
-      - tyk
 
 volumes:
   tyk-redis-data:

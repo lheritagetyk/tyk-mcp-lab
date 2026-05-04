@@ -1,29 +1,11 @@
 .env
 .env.bak
+.DS_Store
 .DS_store
+*.bak
 .context-data
 .bootstrap
 .idea/
 logs/*
 **/*.so
-deployments/cicd/volumes/jenkins/bootstrap-import/credentials-global.xml
-deployments/cicd/volumes/jenkins/plugins/*.jpi
-deployments/tyk/volumes/tyk-gateway/plugins/go/example/vendor
 deployments/tyk/volumes/tyk-gateway/middleware/bundles
-deployments/tyk/volumes/tyk-gateway/plugins/go/jwt/vendor
-
-# Dynamic environment variables for tests
-deployments/**/dynamic-test-vars.env
-
-## Portal Deployment
-deployments/portal/volumes/database/portal.db
-deployments/portal/volumes/logs
-
-# Unikraft
-.unikraft
-
-# Governance
-deployments/governance/volumes/governance-agent/config.yaml
-
-# Portal saves stuff here during runtime, we can ignore it.
-deployments/portal/volumes/assets/*
