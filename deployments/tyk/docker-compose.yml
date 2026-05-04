@@ -59,27 +59,6 @@ services:
     depends_on:
       - tyk-redis
       - tyk-dashboard
-  tyk-gateway-2:
-    image: tykio/${GATEWAY_IMAGE_REPO:-tyk-gateway}:${GATEWAY2_VERSION:-v5.12.0}
-    ports:
-      - 8081:8080
-      - 9005:9005
-    networks:
-      - tyk
-    environment:
-      - TYK_LOGLEVEL=${GATEWAY2_LOGLEVEL:-info}
-      - TYK_INSTRUMENTATION=${INSTRUMENTATION_ENABLED:-0}
-      - TYK_DB_STREAMING_ENABLED=true
-    env_file:
-      - .env
-    volumes:
-      - ./deployments/tyk/volumes/tyk-gateway/tyk-2.conf:/opt/tyk-gateway/tyk.conf
-      - tyk-gateway-certs:/opt/tyk-gateway/certs
-      - ./deployments/tyk/volumes/tyk-gateway/middleware:/opt/tyk-gateway/middleware
-    depends_on:
-      - tyk-redis
-      - tyk-gateway
-      - tyk-dashboard
   tyk-pump:
     image: tykio/tyk-pump-docker-pub:${PUMP_VERSION:-v1.15.0-rc1}
     ports:

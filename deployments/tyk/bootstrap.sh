@@ -15,8 +15,6 @@ GATEWAY_DISPLAY_URL="$gateway_base_url"
 set_context_data "1" "gateway" "1" "base-url" $gateway_base_url
 gateway_base_url_tcp="tyk-gateway.localhost:8086"
 GATEWAY_DISPLAY_URL_TCP="$gateway_base_url_tcp"
-gateway2_base_url="https://tyk-gateway-2.localhost:8081"
-GATEWAY2_DISPLAY_URL="$gateway2_base_url"
 log_ok
 bootstrap_progress
 
@@ -47,7 +45,6 @@ dashboard_admin_api_credentials=$(cat deployments/tyk/volumes/tyk-dashboard/tyk_
 log_message "  Dashboard Admin API Credentials = $dashboard_admin_api_credentials"
 portal_root_path=$(cat deployments/tyk/volumes/tyk-dashboard/tyk_analytics.conf | jq -r .host_config.portal_root_path 2>> logs/bootstrap.log)
 gateway_api_credentials=$(cat deployments/tyk/volumes/tyk-gateway/tyk.conf | jq -r .secret)
-gateway2_api_credentials=$(cat deployments/tyk/volumes/tyk-gateway/tyk-2.conf | jq -r .secret)
 bootstrap_progress
 
 # Check whether this script is being run in a container
@@ -80,7 +77,6 @@ if [ "$CONTAINERISED_RUNNER" == "true" ]; then
   # Redefine the base URLs, such that the services can be accessed from the container running this script
   gateway_base_url="http://tyk-gateway:8080"
   dashboard_base_url="http://tyk-dashboard:3000"
-  gateway2_base_url="https://tyk-gateway-2:8080"
   set_context_data "1" "gateway" "1" "base-url" $gateway_base_url
 else
   log_message "  Running on host - no further action required"
@@ -123,34 +119,6 @@ while true; do
 done
 
 log_message "OpenSSL version used for generating certs: $(docker exec $OPENSSL_CONTAINER_NAME openssl version)"
-
-log_message "Generating self-signed certificate for TLS connections to tyk-gateway-2.localhost"
-docker exec $OPENSSL_CONTAINER_NAME sh -c "openssl req -x509 -newkey rsa:4096 -subj \"/CN=tyk-gateway-2.localhost\" -keyout /tyk-gateway-certs/tls-private-key.pem -out /tyk-gateway-certs/tls-certificate.pem -days 365 -nodes" >/dev/null 2>&1; openssl_cmd_status=$?
-if [ "$openssl_cmd_status" -ne "0" ]; then
-  echo "ERROR: Could not generate self-signed certificate"
-  exit 1
-fi
-log_ok
-bootstrap_progress
-
-log_message "Flushing writes on OpenSSL container $OPENSSL_CONTAINER_NAME"
-docker exec $OPENSSL_CONTAINER_NAME sync
-log_ok
-bootstrap_progress
-
-log_message "Checking TLS assets exist"
-docker exec $OPENSSL_CONTAINER_NAME sh -c "test -r /tyk-gateway-certs/tls-certificate.pem"
-if [ "$?" -ne "0" ]; then
-  echo "ERROR: Could not read /tyk-gateway-certs/tls-certificate.pem"
-  exit 1
-fi
-docker exec $OPENSSL_CONTAINER_NAME sh -c "test -r /tyk-gateway-certs/tls-private-key.pem"
-if [ "$?" -ne "0" ]; then
-  echo "ERROR: Could not read /tyk-gateway-certs/tls-private-key.pem"
-  exit 1
-fi
-log_ok
-bootstrap_progress
 
 log_message "Generating private key for secure messaging and signing"
 docker exec $OPENSSL_CONTAINER_NAME sh -c "openssl genrsa -out /tyk-dashboard-certs/private-key.pem 2048" >/dev/null 2>>logs/bootstrap.log
@@ -219,7 +187,7 @@ bootstrap_progress
 
 log_message "Recreating containers to load new certificates"
 eval $(generate_docker_compose_command) up -d --no-deps --force-recreate tyk-dashboard
-eval $(generate_docker_compose_command) up -d --no-deps --force-recreate tyk-gateway tyk-gateway-2
+eval $(generate_docker_compose_command) up -d --no-deps --force-recreate tyk-gateway
 log_ok
 
 log_message "Wait for services to be available after restart"
@@ -612,39 +580,9 @@ fi
 log_ok
 
 
-log_message "Checking Gateway 2 - Anonymous API access"
-if [ "$(licence_allowed_nodes "DASHBOARD_LICENCE")" -lt 2 ]; then
-  log_message "  Skipping Gateway 2 check as licence does not allow 2 or more nodes, so gateway 2 cannot register with the Dashboard"
-else
-  result=""
-  reload_attempt=0
-  while [ "$result" != "0" ]
-  do
-    wait_for_response "$gateway2_base_url/basic-open-api/get" "200" "" 3
-    result="$?"
-    if [ "$result" != "0" ]
-    then
-      reload_attempt=$((reload_attempt+1))
-      if [ "$reload_attempt" -lt "3"  ]; then
-        log_message "  Gateway 2 not returning desired response, attempting hot reload"
-        hot_reload "$gateway2_base_url" "$gateway2_api_credentials" 
-        sleep 2
-      else
-        log_message "  Maximum reload attempt reached"
-        exit 1
-      fi
-    fi
-    bootstrap_progress
-  done
-  log_ok
-fi
-
 log_message "Sending API requests to generate analytics data"
 # global analytics off
-curl $gateway_base_url/basic-open-api/anything/[1-10] -s -o /dev/null 
-bootstrap_progress
-# global analytics on
-curl $gateway2_base_url/basic-open-api/anything/[1-10] -s -k -o /dev/null
+curl $gateway_base_url/basic-open-api/anything/[1-10] -s -o /dev/null
 bootstrap_progress
 # api analytics off
 curl $gateway_base_url/detailed-analytics-off/get -s -o /dev/null
@@ -800,11 +738,7 @@ echo -e "\033[2K
                URL(TCP) : $GATEWAY_DISPLAY_URL_TCP
            External URL : $ngrok_gateway_tunnel_url
      Gateway API Header : x-tyk-authorization
-        Gateway API Key : $gateway_api_credentials
-  ▽ Gateway 2 ($(get_service_image_tag "tyk-gateway-2"))
-                    URL : $GATEWAY2_DISPLAY_URL  
-     Gateway API Header : x-tyk-authorization
-        Gateway API Key : $gateway2_api_credentials"
+        Gateway API Key : $gateway_api_credentials"
 if [ "$ngrok_available" = "true" ]; then
   echo -e "
   ▽ Ngrok

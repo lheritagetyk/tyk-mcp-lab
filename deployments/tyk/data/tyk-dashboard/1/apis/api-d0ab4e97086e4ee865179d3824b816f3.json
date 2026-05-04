@@ -474,9 +474,7 @@
       }
     },
     "analytics_plugin": {},
-    "tags": [
-      "tyk-gateway-2"
-    ],
+    "tags": [],
     "detailed_tracing": false,
     "upstream_auth": {
       "enabled": false,

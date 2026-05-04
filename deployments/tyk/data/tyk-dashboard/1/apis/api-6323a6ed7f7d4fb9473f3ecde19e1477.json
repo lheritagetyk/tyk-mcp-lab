@@ -55,9 +55,7 @@
       },
       "gatewayTags": {
         "enabled": true,
-        "tags": [
-          "tyk-gateway-2"
-        ]
+        "tags": []
       },
       "listenPath": {
         "strip": true,

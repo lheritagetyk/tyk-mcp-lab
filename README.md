@@ -33,9 +33,8 @@ streams, sso, MDCB, etc.) has been removed.
 sudo ./scripts/update-hosts.sh
 ```
 
-This adds the four hostnames the lab needs to `/etc/hosts`:
-`tyk-dashboard.localhost`, `tyk-portal.localhost`, `tyk-gateway.localhost`,
-`tyk-gateway-2.localhost`.
+This adds the three hostnames the lab needs to `/etc/hosts`:
+`tyk-dashboard.localhost`, `tyk-portal.localhost`, `tyk-gateway.localhost`.
 
 **2. Add your licence**
 

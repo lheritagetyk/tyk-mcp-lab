@@ -7,7 +7,6 @@ A comprehensive guide for standard Tyk deployment with Dashboard, Gateway, Pump,
 - [Tyk Dashboard](http://tyk-dashboard.localhost:3000)
 - [Tyk Portal (Classic)](http://tyk-portal.localhost:3000/portal)
 - [Tyk Gateway](http://tyk-gateway.localhost:8080/basic-open-api/get)
-- [Tyk Gateway 2 (TLS)](https://tyk-gateway-2.localhost:8081/basic-open-api/get)
 
 ## Getting Started
 
@@ -73,14 +72,6 @@ The deployment implements [secure communication](https://tyk.io/docs/api-managem
 - **Implementation**: Public/private key pair
 - **Configuration**: Gateway holds the public key, Dashboard holds the private key
 - **Security Setting**: `allow_insecure_configs` in `tyk.conf` is set to `false`
-
-### TLS-Enabled Gateway
-
-The `tyk-gateway-2` gateway is configured to listen using TLS:
-
-- [Tyk TLS Gateway](https://tyk-gateway-2.localhost:8081/basic-open-api/get)
-
-> **Note:** The gateway uses a self-signed certificate, requiring HTTP clients to ignore certificate verification errors when accessing.
 
 ### Role-Based API Portal Catalog
 
