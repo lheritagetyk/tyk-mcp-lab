@@ -1,0 +1,54 @@
+{
+  "info": {
+    "title": "Basic Open API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.3",
+  "servers": [
+    {
+      "url": "http://tyk-gateway.localhost:8080/basic-open-api/"
+    }
+  ],
+  "security": [],
+  "paths": {},
+  "components": {
+    "securitySchemes": {}
+  },
+  "x-tyk-api-gateway": {
+    "info": {
+      "id": "8a1f4c6d3e0b4f12a7e8d9c4b5a63721",
+      "orgId": "5e9d9544a1dcd60001d0ed20",
+      "name": "Basic Open API",
+      "state": {
+        "active": true,
+        "internal": false
+      }
+    },
+    "middleware": {
+      "global": {
+        "contextVariables": {
+          "enabled": true
+        },
+        "trafficLogs": {
+          "enabled": true
+        }
+      }
+    },
+    "server": {
+      "detailedTracing": {
+        "enabled": true
+      },
+      "listenPath": {
+        "strip": true,
+        "value": "/basic-open-api/"
+      }
+    },
+    "upstream": {
+      "proxy": {
+        "enabled": false,
+        "url": ""
+      },
+      "url": "http://httpbin:8080/"
+    }
+  }
+}

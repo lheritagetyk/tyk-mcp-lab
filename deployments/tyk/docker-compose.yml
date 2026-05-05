@@ -91,6 +91,13 @@ services:
       - tyk-mongo-data:/data/db
     networks:
       - tyk
+  httpbin:
+    # mccutchen/go-httpbin: API-compatible reimplementation of httpbin with
+    # native multi-arch images (linux/amd64 + linux/arm64). Runs natively on
+    # Apple Silicon, no Rosetta emulation. Listens on :8080 by default.
+    image: mccutchen/go-httpbin:v2.15.0
+    networks:
+      - tyk
 
 volumes:
   tyk-redis-data:
