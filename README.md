@@ -1,8 +1,5 @@
 # Tyk MCP Lab
 
-A slimmed-down fork of [TykTechnologies/tyk-demo](https://github.com/TykTechnologies/tyk-demo)
-trimmed to only what's needed to run the **MCP Gateway + OpenTelemetry/Jaeger**
-lab.
 
 ```
 ./up.sh mcp-gateway otel-jaeger
@@ -12,7 +9,7 @@ lab.
 
 | Deployment    | Purpose |
 |---------------|---------|
-| `tyk`         | Base Tyk stack (Dashboard, Gateway, Pump, Redis, Mongo, supporting upstreams). Auto-bootstrapped. |
+| `tyk`         | Base Tyk stack (Dashboard, Gateway, Pump, Redis, Mongo) plus an `httpbin` sample upstream. Auto-bootstrapped. |
 | `mcp-gateway` | Mock MCP server + MCP Inspector. Creates a `mock-mcp` REST proxy in the Dashboard so you can build the MCP demo live. |
 | `otel-jaeger` | Jaeger all-in-one with OTLP receiver. Tyk Gateway is wired to export traces to it. |
 
@@ -48,8 +45,7 @@ This adds the three hostnames the lab needs to `/etc/hosts`:
 ./up.sh mcp-gateway otel-jaeger
 ```
 
-Wait for the `Tyk MCP lab initialisation process completed` banner. First run
-builds Go plugins (5–10 minutes); subsequent runs are cached.
+Wait for the `Tyk MCP lab initialisation process completed` banner.
 
 **4. Access the services**
 
@@ -62,6 +58,41 @@ builds Go plugins (5–10 minutes); subsequent runs are cached.
 | Jaeger UI      | http://localhost:16686 |
 
 Dashboard credentials are printed by the bootstrap output.
+
+## Sample APIs
+
+Two APIs are available out of the box:
+
+| API             | Listen path        | Upstream                     | Auth     |
+|-----------------|--------------------|------------------------------|----------|
+| Basic Open API  | `/basic-open-api/` | `httpbin` (mccutchen/go-httpbin, multi-arch) | Keyless  |
+| mock-mcp        | `/mock-mcp/`       | `mcp-mock-server:7878`       | Keyless  |
+
+The Dashboard's API explorer renders the full OpenAPI for **Basic Open API**
+— five documented endpoints with parameter docs and response schemas:
+
+```bash
+# Plain GET — returns args/headers/origin/url
+curl http://tyk-gateway.localhost:8080/basic-open-api/get
+
+# POST with a JSON body — body comes back inside the json field
+curl -X POST http://tyk-gateway.localhost:8080/basic-open-api/post \
+  -H "Content-Type: application/json" \
+  -d '{"hello":"world"}'
+
+# Force a specific status code (great for testing error paths)
+curl -i http://tyk-gateway.localhost:8080/basic-open-api/status/418
+
+# Dump the headers Tyk forwarded upstream
+curl http://tyk-gateway.localhost:8080/basic-open-api/headers
+
+# Basic auth (challenges 401, then 200 with creds)
+curl http://tyk-gateway.localhost:8080/basic-open-api/basic-auth/foo/bar
+curl -u foo:bar http://tyk-gateway.localhost:8080/basic-open-api/basic-auth/foo/bar
+```
+
+Each request also shows up as a span in Jaeger at
+http://localhost:16686 — pick `tyk-gateway` from the service dropdown.
 
 ## Common operations
 
@@ -83,10 +114,16 @@ Dashboard credentials are printed by the bootstrap output.
 │   ├── update-hosts.sh    Adds required hostnames to /etc/hosts
 │   └── update-env.sh      Helper for setting .env values
 └── deployments/
-    ├── tyk/               Base Tyk stack
+    ├── tyk/               Base Tyk stack + httpbin upstream
+    │   └── data/tyk-dashboard/1/apis/basic-open-api.json
+    │                      OAS spec for the Basic Open API sample
     ├── mcp-gateway/       Mock MCP server + Inspector + dashboard MCP proxy
     └── otel-jaeger/       Jaeger all-in-one
 ```
+
+To add more sample APIs, drop additional OAS JSON files into
+`deployments/tyk/data/tyk-dashboard/1/apis/`. The bootstrap iterates that
+directory and creates each one in the Dashboard automatically.
 
 ## Provenance
 
