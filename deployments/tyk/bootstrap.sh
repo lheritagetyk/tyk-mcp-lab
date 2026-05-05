@@ -98,8 +98,8 @@ bootstrap_progress
 
 log_message "Creating temporary container $OPENSSL_CONTAINER_NAME for OpenSSL usage"
 docker run -d --name $OPENSSL_CONTAINER_NAME \
-  -v tyk-demo_tyk-gateway-certs:/tyk-gateway-certs \
-  -v tyk-demo_tyk-dashboard-certs:/tyk-dashboard-certs \
+  -v tyk-mcp-lab_tyk-gateway-certs:/tyk-gateway-certs \
+  -v tyk-mcp-lab_tyk-dashboard-certs:/tyk-dashboard-certs \
   alpine:3.20.1 tail -f /dev/null >/dev/null 2>&1
 log_ok
 bootstrap_progress
